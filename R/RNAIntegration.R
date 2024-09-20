@@ -415,7 +415,7 @@ addGeneIntegrationMatrix <- function(
       useMatrix = useMatrix,
       verbose = FALSE
     )
-    rownames(mat) <- geneDF[geneDF$name %in% genesUse, "name"]
+    rownames(mat) <- as.character(geneDF[geneDF$name %in% genesUse, "name"])
     .logThis(mat, paste0("GeneScoreMat-Block-",i), logFile=logFile)
 
     #Impute Matrix (its already scaled internally in ArrowFiles)

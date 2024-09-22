@@ -951,6 +951,7 @@ getMonocleTrajectories <- function(
   principalGroup = NULL,
   groupBy = NULL,
   embedding = NULL,
+  plot = FALSE,
   clusterParams = list(),
   graphParams = list(),
   seed = 1
@@ -1037,36 +1038,38 @@ getMonocleTrajectories <- function(
   cds@principal_graph_aux[[1]]$pseudotime <- ArchR:::.getQuantiles(cds@principal_graph_aux[[1]]$pseudotime) * 100
 
   #Plot Results
-  canRaster <- requireNamespace("ggrastr", quietly = TRUE)
-
-  p1 <- plot_cells(cds,
-         color_cells_by = groupBy,
-         rasterize = canRaster,
-         label_groups_by_cluster=FALSE,
-         label_leaves=FALSE,
-         label_branch_points=FALSE) + 
-    scale_colour_manual(values = paletteDiscrete(values = colData(cds)[,groupBy])) + theme_ArchR() + 
+  if (plot) {
+    canRaster <- requireNamespace("ggrastr", quietly = TRUE)
+  
+    p1 <- plot_cells(cds,
+           color_cells_by = groupBy,
+           rasterize = canRaster,
+           label_groups_by_cluster=FALSE,
+           label_leaves=FALSE,
+           label_branch_points=FALSE) + 
+      scale_colour_manual(values = paletteDiscrete(values = colData(cds)[,groupBy])) + theme_ArchR() + 
+        theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+                  axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  
+    p2 <- plot_cells(cds,
+           color_cells_by = "pseudotime",
+           label_cell_groups=FALSE,
+           rasterize = canRaster,
+           label_leaves=FALSE,
+           label_branch_points=FALSE,
+           graph_label_size=1.5) + theme_ArchR() +
       theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-                axis.text.y = element_blank(), axis.ticks.y = element_blank())
-
-  p2 <- plot_cells(cds,
-         color_cells_by = "pseudotime",
-         label_cell_groups=FALSE,
-         rasterize = canRaster,
-         label_leaves=FALSE,
-         label_branch_points=FALSE,
-         graph_label_size=1.5) + theme_ArchR() +
-    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-                axis.text.y = element_blank(), axis.ticks.y = element_blank())
-
-
-  path <- file.path(getOutputDirectory(ArchRProj), "Monocole3", paste0("Plot-Results-", name, ".pdf"))
-
-  message("Plotting Results - ", path)
-  pdf(path, width = 6, height = 6, useDingbats = FALSE)
-  ArchR:::.fixPlotSize(p1)
-  ArchR:::.fixPlotSize(p2, newPage = TRUE)
-  dev.off()
+                  axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  
+  
+    path <- file.path(getOutputDirectory(ArchRProj), "Monocole3", paste0("Plot-Results-", name, ".pdf"))
+  
+    message("Plotting Results - ", path)
+    pdf(path, width = 6, height = 6, useDingbats = FALSE)
+    ArchR:::.fixPlotSize(p1)
+    ArchR:::.fixPlotSize(p2, newPage = TRUE)
+    dev.off()
+  }
 
   cds
 

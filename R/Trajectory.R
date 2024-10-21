@@ -948,6 +948,7 @@ getMonocleTrajectories <- function(
   ArchRProj = NULL,
   name = "Trajectory",
   useGroups = NULL,
+  useMatrix = "PeakMatrix",
   principalGroup = NULL,
   groupBy = NULL,
   embedding = NULL,
@@ -974,11 +975,44 @@ getMonocleTrajectories <- function(
   message("Running Monocole3 Trajectory Infrastructure!")
 
   #Create CDS
+  sum_exp <- getMatrixFromProject(ArchRProj, useMatrix)
+
+  count_mat <- assays(sum_exp)[[useMatrix]]
+
+
+  if ("name" %in% colnames(elementMetadata(sum_exp))) {
+    # Gene Expression Matrix has gene names...
+    row.names(count_mat) <- elementMetadata(sum_exp)[["name"]]
+  }
+
+  if (!is.null(rowRanges(sum_exp))) {
+    # If it's other matrices, there would be no names but only a range
+    peakset <- rowRanges(sum_exp)
+    feat <- paste(
+      seqnames(peakset),
+      start(peakset),
+      end(peakset),
+      sep = "-"
+    )
+    row.names(count_mat) <- feat
+  }
+
+  if (is.null(count_mat)) {
+    stop("No feature names can be retrieved from elementMetadata or rowRanges of the provided matrix.\n",
+         "Please try examining the matrix used with getMatrixFromProject().")
+  }
+
+  if (class(count_mat) != "dgCMatrix") {
+    count_mat <- as(count_mat, "dgCMatrix")
+  }
+
+  colDF <- getCellColData(ArchRProj)
+  count_mat <- count_mat[ , row.names(colDF)]
+  
   sce <- SingleCellExperiment(
-    assays = SimpleList(
-      counts = as(matrix(rnorm(nCells(ArchRProj) * 3), ncol = nCells(ArchRProj), nrow = 3), "dgCMatrix")
-    ),
-    colData = getCellColData(ArchRProj)
+    assays = SimpleList(counts = count_mat),
+    colData = colDF,
+    rowData = data.frame(features = row.names(count_mat), row.names = row.names(count_mat))
   )
 
   cds <- methods::new(
@@ -997,9 +1031,15 @@ getMonocleTrajectories <- function(
 
   rm(sce)
 
+  # Estimate size factor
+  message("Estimating size factor")
+  cds <- estimate_size_factors(cds)
+
+
   #Add Embedding
   message("Adding Embedding")
-  reducedDims(cds)$UMAP <- getEmbedding(ArchRProj, embedding = embedding)
+  reducedDims(cds)[["UMAP"]] <- as.matrix(getEmbedding(ArchRProj, embedding = embedding))
+  
 
   if(!is.null(useGroups)){
     cds <- cds[, which(colData(cds)[, groupBy] %in% useGroups)]
@@ -1045,8 +1085,7 @@ getMonocleTrajectories <- function(
            color_cells_by = groupBy,
            rasterize = canRaster,
            label_groups_by_cluster=FALSE,
-           label_leaves=FALSE,
-           label_branch_points=FALSE) + 
+           label_leaves=FALSE, label_branch_points=FALSE) + 
       scale_colour_manual(values = paletteDiscrete(values = colData(cds)[,groupBy])) + theme_ArchR() + 
         theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
                   axis.text.y = element_blank(), axis.ticks.y = element_blank())

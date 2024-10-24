@@ -955,6 +955,7 @@ getMonocleTrajectories <- function(
   plot = FALSE,
   clusterParams = list(),
   graphParams = list(),
+  useSeqnames = NULL,
   seed = 1,
   binarize = TRUE
   ){
@@ -976,7 +977,7 @@ getMonocleTrajectories <- function(
   message("Running Monocole3 Trajectory Infrastructure!")
 
   #Create CDS
-  sum_exp <- getMatrixFromProject(ArchRProj, useMatrix = useMatrix, binarize = binarize)
+  sum_exp <- getMatrixFromProject(ArchRProj, useMatrix = useMatrix, binarize = binarize, useSeqnames = useSeqnames)
 
   count_mat <- assays(sum_exp)[[useMatrix]]
 
